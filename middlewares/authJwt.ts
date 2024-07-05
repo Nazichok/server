@@ -10,6 +10,16 @@ declare global {
   }
 }
 
+const { TokenExpiredError } = jwt;
+
+const catchError = (err: Error, res: Response) => {
+  if (err instanceof TokenExpiredError) {
+    return res.status(401).send({ message: "Unauthorized! Access Token was expired!" });
+  }
+
+  return res.sendStatus(401).send({ message: "Unauthorized!" });
+}
+
 /**
  * Verify the authentication token.
  *
@@ -22,12 +32,11 @@ const verifyToken = (
   req: Request,
   res: Response,
   next: NextFunction
-): void => {
-  let token = req.session?.token;
+) => {
+  let token = req.headers["x-access-token"] as string;
 
   if (!token) {
-    res.status(403).send({ message: "No token provided!" });
-    return;
+    return res.status(403).send({ message: "No token provided!" });
   }
 
   try {
@@ -36,10 +45,8 @@ const verifyToken = (
     req.userId = decoded.id;
     next();
 
-  } catch (error) {
-    res.status(401).send({
-      message: "Unauthorized!",
-    });
+  } catch (error: Error | any) {
+    return catchError(error, res);
   }
 };
 

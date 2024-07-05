@@ -5,6 +5,7 @@ import config from "../config/auth.config";
 import db from "../models";
 
 const User = db.user;
+const RefreshToken = db.refreshToken;
 
 export const signup = async (req: Request, res: Response) => {
   const user = new User({
@@ -43,10 +44,11 @@ export const signin = async (req: Request, res: Response) => {
     }
 
     const token = jwt.sign({ id: user.id }, config.secret, {
-      algorithm: "HS256",
-      allowInsecureKeySizes: true,
       expiresIn: 86400, // 24 hours
     });
+
+    // @ts-ignore
+    let refreshToken = await RefreshToken.createToken(user);
 
     if (req.session) {
       req.session.token = token;
@@ -56,9 +58,51 @@ export const signin = async (req: Request, res: Response) => {
       id: user._id,
       username: user.username,
       email: user.email,
+      accessToken: token,
+      refreshToken: refreshToken,
     });
   } catch (err) {
     res.status(500).send({ message: err });
+  }
+};
+
+
+export const refreshToken = async (req: Request, res: Response) => {
+  const { refreshToken: requestToken } = req.body;
+
+  if (requestToken == null) {
+    return res.status(403).json({ message: "Refresh Token is required!" });
+  }
+
+  try {
+    let refreshToken = await RefreshToken.findOne({ token: requestToken });
+
+    if (!refreshToken) {
+      res.status(403).json({ message: "Refresh token is not in database!" });
+      return;
+    }
+
+    // @ts-ignore
+    if (RefreshToken.verifyExpiration(refreshToken)) {
+      // @ts-ignore
+      RefreshToken.findByIdAndRemove(refreshToken._id, { useFindAndModify: false }).exec();
+
+      res.status(403).json({
+        message: "Refresh token was expired. Please make a new signin request",
+      });
+      return;
+    }
+
+    let newAccessToken = jwt.sign({ id: refreshToken.user._id }, config.secret, {
+      expiresIn: config.jwtExpiration,
+    });
+
+    return res.status(200).json({
+      accessToken: newAccessToken,
+      refreshToken: refreshToken.token,
+    });
+  } catch (err) {
+    return res.status(500).send({ message: err });
   }
 };
 
