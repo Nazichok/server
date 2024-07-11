@@ -3,6 +3,7 @@ import cors from "cors";
 import cookieSession from "cookie-session";
 import db from "./models/index";
 import dbConfig from "./config/db.config";
+import authConfig from "./config/auth.config";
 import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
 import { Server } from "socket.io";
@@ -10,22 +11,20 @@ import { Server } from "socket.io";
 const app = express();
 
 var corsOptions = {
-  origin: "*",
+  credentials: true,
+  origin: ["http://localhost:4200"],
 };
 
 app.use(cors(corsOptions));
-
-// parse requests of content-type - application/json
 app.use(express.json());
-
-// parse requests of content-type - application/x-www-form-urlencoded
 app.use(express.urlencoded({ extended: true }));
 
 app.use(
   cookieSession({
     name: "chat-app",
-    keys: ["COOKIE_SECRET"], // should use as secret environment variable
+    keys: [authConfig.cookieSecret],
     httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000,
   })
 );
 

@@ -1,16 +1,16 @@
-import mongoose, { Model, Mongoose } from 'mongoose';
-import user from './User';
-import chat from './Chat';
-import message from './Message';
-import refreshToken from './RefreshToken';
+import mongoose, { Model, Mongoose } from "mongoose";
+import user from "./User";
+import chat from "./Chat";
+import message from "./Message";
+import RefreshToken, { RefreshTokentModel } from "./RefreshToken";
 
-export type DBType  = {
-  mongoose: Mongoose,
-  user: Model<any>,
-  chat: Model<any>,
-  message: Model<any>
-  refreshToken: Model<any>
-}
+export type DBType = {
+  mongoose: Mongoose;
+  user: Model<any>;
+  chat: Model<any>;
+  message: Model<any>;
+  refreshToken: RefreshTokentModel;
+};
 
 mongoose.Promise = global.Promise;
 
@@ -19,7 +19,7 @@ const db: DBType = {
   user,
   chat,
   message,
-  refreshToken
+  refreshToken: RefreshToken,
 };
 
 export default db;

@@ -33,8 +33,7 @@ const verifyToken = (
   res: Response,
   next: NextFunction
 ) => {
-  let token = req.headers["x-access-token"] as string;
-
+  let token = req?.session?.token;
   if (!token) {
     return res.status(403).send({ message: "No token provided!" });
   }

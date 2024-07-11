@@ -20,7 +20,7 @@ export const signup = async (req: Request, res: Response) => {
     res.status(200).send({ message: "User was registered successfully!" });
   } catch (err) {
     console.log("user save error", err);
-    res.status(500).send({ message: err });
+    res.status(500).send({ message: JSON.stringify(err) });
   }
 };
 
@@ -44,10 +44,9 @@ export const signin = async (req: Request, res: Response) => {
     }
 
     const token = jwt.sign({ id: user.id }, config.secret, {
-      expiresIn: 86400, // 24 hours
+      expiresIn: config.jwtExpiration,
     });
 
-    // @ts-ignore
     let refreshToken = await RefreshToken.createToken(user);
 
     if (req.session) {
@@ -62,10 +61,9 @@ export const signin = async (req: Request, res: Response) => {
       refreshToken: refreshToken,
     });
   } catch (err) {
-    res.status(500).send({ message: err });
+    res.status(500).send({ message: JSON.stringify(err) });
   }
 };
-
 
 export const refreshToken = async (req: Request, res: Response) => {
   const { refreshToken: requestToken } = req.body;
@@ -82,10 +80,11 @@ export const refreshToken = async (req: Request, res: Response) => {
       return;
     }
 
-    // @ts-ignore
     if (RefreshToken.verifyExpiration(refreshToken)) {
-      // @ts-ignore
-      RefreshToken.findByIdAndRemove(refreshToken._id, { useFindAndModify: false }).exec();
+
+      RefreshToken.findByIdAndDelete(refreshToken._id, {
+        useFindAndModify: false,
+      }).exec();
 
       res.status(403).json({
         message: "Refresh token was expired. Please make a new signin request",
@@ -93,16 +92,24 @@ export const refreshToken = async (req: Request, res: Response) => {
       return;
     }
 
-    let newAccessToken = jwt.sign({ id: refreshToken.user._id }, config.secret, {
-      expiresIn: config.jwtExpiration,
-    });
+    let newAccessToken = jwt.sign(
+      { id: refreshToken.user._id },
+      config.secret,
+      {
+        expiresIn: config.jwtExpiration,
+      }
+    );
+
+    if (req.session) {
+      req.session.token = newAccessToken;
+    }
 
     return res.status(200).json({
       accessToken: newAccessToken,
       refreshToken: refreshToken.token,
     });
   } catch (err) {
-    return res.status(500).send({ message: err });
+    return res.status(500).send({ message: JSON.stringify(err) });
   }
 };
 
