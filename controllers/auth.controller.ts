@@ -51,14 +51,13 @@ export const signin = async (req: Request, res: Response) => {
 
     if (req.session) {
       req.session.token = token;
+      req.session.refreshToken = refreshToken;
     }
 
     res.status(200).send({
-      id: user._id,
+      _id: user._id,
       username: user.username,
       email: user.email,
-      accessToken: token,
-      refreshToken: refreshToken,
     });
   } catch (err) {
     res.status(500).send({ message: JSON.stringify(err) });
@@ -66,7 +65,7 @@ export const signin = async (req: Request, res: Response) => {
 };
 
 export const refreshToken = async (req: Request, res: Response) => {
-  const { refreshToken: requestToken } = req.body;
+  const requestToken = req?.session?.refreshToken;
 
   if (requestToken == null) {
     return res.status(403).json({ message: "Refresh Token is required!" });
@@ -76,8 +75,7 @@ export const refreshToken = async (req: Request, res: Response) => {
     let refreshToken = await RefreshToken.findOne({ token: requestToken });
 
     if (!refreshToken) {
-      res.status(403).json({ message: "Refresh token is not in database!" });
-      return;
+      return res.status(403).json({ message: "Refresh token is not in database!" });
     }
 
     if (RefreshToken.verifyExpiration(refreshToken)) {
@@ -86,10 +84,9 @@ export const refreshToken = async (req: Request, res: Response) => {
         useFindAndModify: false,
       }).exec();
 
-      res.status(403).json({
+      return res.status(403).json({
         message: "Refresh token was expired. Please make a new signin request",
       });
-      return;
     }
 
     let newAccessToken = jwt.sign(
@@ -104,10 +101,7 @@ export const refreshToken = async (req: Request, res: Response) => {
       req.session.token = newAccessToken;
     }
 
-    return res.status(200).json({
-      accessToken: newAccessToken,
-      refreshToken: refreshToken.token,
-    });
+    return res.status(200).send({});
   } catch (err) {
     return res.status(500).send({ message: JSON.stringify(err) });
   }
@@ -119,9 +113,12 @@ export const signout = async (
   next: NextFunction
 ) => {
   try {
+    const { userId } = req;
+    console.log("token", userId);
     req.session = null;
-    res.status(200).send({ message: "You've been signed out!" });
+    RefreshToken.deleteMany({ user: { $eq: userId } }).exec();
+    return res.status(200).send({ message: "You've been signed out!" });
   } catch (err) {
-    next(err);
+    return next(err);
   }
 };

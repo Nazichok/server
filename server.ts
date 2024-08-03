@@ -1,4 +1,4 @@
-import express, { Application, Response } from "express";
+import express, { NextFunction, Request, Response } from "express";
 import cors from "cors";
 import cookieSession from "cookie-session";
 import db from "./models/index";
@@ -6,7 +6,12 @@ import dbConfig from "./config/db.config";
 import authConfig from "./config/auth.config";
 import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
-import { Server } from "socket.io";
+import { Server, Socket } from "socket.io";
+import cookieParser from "cookie-parser";
+import { errorHandler } from "./middlewares/error";
+import chatRoutes from "./routes/chat.routes";
+import messagesRoutes from "./routes/messages.routes";
+import { runSocket } from "./socket";
 
 const app = express();
 
@@ -18,6 +23,13 @@ var corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+app.use(errorHandler);
+
+app.use((_req: Request, res: Response, next: NextFunction) => {
+  res.header("Access-Control-Allow-Headers", "Origin, Content-Type, Accept");
+  next();
+});
 
 app.use(
   cookieSession({
@@ -28,13 +40,10 @@ app.use(
   })
 );
 
-// simple route
-app.get("/", (_, res) => {
-  res.json({ message: "Welcome to chat-app." });
-});
-
 authRoutes(app);
 userRoutes(app);
+chatRoutes(app);
+messagesRoutes(app);
 
 // set port, listen for requests
 const PORT = process.env.PORT || 8080;
@@ -44,20 +53,7 @@ async function run() {
   const server = app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}.`);
   });
-  const io = new Server(server, {
-    cors: {
-      origin: "*",
-    },
-  });
-
-  io.on("connection", (socket) => {
-    console.log("a user connected");
-
-    socket.on("message", (msg) => {
-      console.log(msg);
-      socket.broadcast.emit("message-broadcast", msg);
-    });
-  });
+  runSocket(server);
 }
 
 try {

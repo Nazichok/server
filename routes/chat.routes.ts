@@ -1,6 +1,6 @@
 import { Express } from "express";
 import verifyToken from "../middlewares/authJwt";
-import { allAccess } from "../controllers/user.controller";
+import { createChat, getChats, searchUsers } from "../controllers/chat.controller";
 
 /**
  * Mounts user routes on the Express app.
@@ -8,5 +8,8 @@ import { allAccess } from "../controllers/user.controller";
  * @returns void
  */
 export default function (app: Express): void {
-  app.get("/api/test/all", verifyToken, allAccess);
+  app.get("/api/users/search", verifyToken, searchUsers);
+
+  app.get("/api/chats", verifyToken, getChats);
+  app.post("/api/chats", verifyToken, createChat);
 }

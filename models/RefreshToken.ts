@@ -1,5 +1,5 @@
 import { Document } from "mongoose";
-import mongoose from "mongoose";
+import mongoose, { Types } from "mongoose";
 import config from "../config/auth.config";
 import { v4 as uuidv4 } from "uuid";
 
@@ -7,7 +7,7 @@ const RefreshTokenSchema = new mongoose.Schema(
   {
     token: String,
     user: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Types.ObjectId,
       ref: "User",
     },
     expiryDate: Date,
