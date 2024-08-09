@@ -8,7 +8,6 @@ export enum SocketEvents {
   USER_DISCONNECTED = "user disconnected",
   PRIVATE_MESSAGE = "private message",
   USER_IDS = "userIds",
-  SESSION = "session",
   CONNECT_ERROR = "connect error",
   CONNECTION = "connection",
   DISCONNECT = "disconnect",
@@ -18,12 +17,10 @@ export enum SocketEvents {
 const randomId = () => randomBytes(8).toString("hex");
 
 const Message = db.message;
-const Session = db.session;
 
 declare module "socket.io" {
   interface Socket {
     userId: string;
-    sessionId?: string;
   }
 }
 
@@ -34,49 +31,17 @@ export const runSocket = (server: any) => {
     },
   });
 
-  io.use(async (socket, next) => {
-    const sessionId = socket.handshake.auth.sessionId;
-    if (sessionId) {
-      // find existing session
-      const session = await Session.findById(sessionId);
-      if (session) {
-        socket.sessionId = sessionId;
-        socket.userId = String(session.userId);
-        return next();
-      }
-    }
+  io.use((socket, next) => {
     const userId = socket.handshake.auth.userId;
     if (!userId) {
       return next(new Error("User error"));
     }
 
-    const session = new Session({
-      userId,
-      connected: true
-    });
-    const savedSession = await session.save();
-    socket.sessionId = savedSession._id;
     socket.userId = userId;
     next();
   });
 
   io.on(SocketEvents.CONNECTION, async (socket) => {
-    Session.findByIdAndUpdate(
-      socket.sessionId,
-      {
-        userId: socket.userId,
-        connected: true,
-      },
-      {
-        upsert: true,
-      }
-    ).exec();
-
-    socket.emit(SocketEvents.SESSION, {
-      sessionId: socket.sessionId,
-      userId: socket.userId,
-    });
-
     socket.join(socket.userId);
 
     const userIds = [];
@@ -107,17 +72,6 @@ export const runSocket = (server: any) => {
       if (isDisconnected) {
         // notify other users
         socket.broadcast.emit(SocketEvents.USER_DISCONNECTED, socket.userId);
-        // update the connection status of the session
-        Session.findByIdAndUpdate(
-          socket.sessionId,
-          {
-            userId: socket.userId,
-            connected: false,
-          },
-          {
-            upsert: true,
-          }
-        ).exec();
       }
     });
   });
