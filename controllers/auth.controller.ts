@@ -19,7 +19,6 @@ export const signup = async (req: Request, res: Response) => {
 
     res.status(200).send({ message: "User was registered successfully!" });
   } catch (err) {
-    console.log("user save error", err);
     res.status(500).send({ message: JSON.stringify(err) });
   }
 };
@@ -113,10 +112,9 @@ export const signout = async (
   next: NextFunction
 ) => {
   try {
-    const { userId } = req;
-    console.log("token", userId);
+    const { userId } = req.body;
     req.session = null;
-    RefreshToken.deleteMany({ user: { $eq: userId } }).exec();
+    await RefreshToken.deleteMany({ user: { $eq: userId } });
     return res.status(200).send({ message: "You've been signed out!" });
   } catch (err) {
     return next(err);

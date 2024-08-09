@@ -17,7 +17,7 @@ export default function (app: Express) {
 
   app.post("/api/auth/signin", signin);
 
-  app.post("/api/auth/signout", verifyToken, signout);
+  app.post("/api/auth/signout", signout);
 
   app.post("/api/auth/refreshtoken", refreshToken);
 }

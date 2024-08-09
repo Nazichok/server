@@ -2,6 +2,7 @@ import mongoose, { Model, Mongoose } from "mongoose";
 import user from "./User";
 import chat from "./Chat";
 import message from "./Message";
+import session from "./Session";
 import RefreshToken, { RefreshTokentModel } from "./RefreshToken";
 
 export type DBType = {
@@ -10,6 +11,7 @@ export type DBType = {
   chat: Model<any>;
   message: Model<any>;
   refreshToken: RefreshTokentModel;
+  session: Model<any>
 };
 
 mongoose.Promise = global.Promise;
@@ -20,6 +22,7 @@ const db: DBType = {
   chat,
   message,
   refreshToken: RefreshToken,
+  session
 };
 
 export default db;

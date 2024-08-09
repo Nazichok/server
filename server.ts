@@ -6,7 +6,6 @@ import dbConfig from "./config/db.config";
 import authConfig from "./config/auth.config";
 import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
-import { Server, Socket } from "socket.io";
 import cookieParser from "cookie-parser";
 import { errorHandler } from "./middlewares/error";
 import chatRoutes from "./routes/chat.routes";

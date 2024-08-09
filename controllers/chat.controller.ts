@@ -28,10 +28,10 @@ export const getChats = async (req: Request, res: Response) => {
     chats.map(async (chat) => {
       const anotherUser = String(chat.user1) === userId ? chat.user2 : chat.user1;
       const user = await User.findById(anotherUser).select("-password");
-      const lastMessage = await Message.findOne({ chat: chat._id }).sort({
+      const lastMessage = await Message.findOne({ chatId: chat._id }).sort({
         date: "desc",
       }).limit(1);
-      const unreadCount = await Message.countDocuments({ chat: chat._id, isRead: false, sender: anotherUser });
+      const unreadCount = await Message.countDocuments({ chatId: chat._id, isRead: false, sender: anotherUser });
       return {
         _id: chat._id,
         user: user,
@@ -47,7 +47,7 @@ export const createChat = async (req: Request, res: Response) => {
   const { userId } = req.body;
   const user1 = req.userId;
   const user2 = userId;
-  console.log(user1, user2);
+
   const chat = new Chat({
     user1,
     user2,

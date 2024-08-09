@@ -1,7 +1,6 @@
 import mongoose, { Types } from 'mongoose';
 
 const MessageSchema = new mongoose.Schema({
-    _id: Types.ObjectId,
     text: String,
     date: { type: Date, default: Date.now },
     sender: {
