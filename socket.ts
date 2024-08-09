@@ -41,7 +41,7 @@ export const runSocket = (server: any) => {
       const session = await Session.findById(sessionId);
       if (session) {
         socket.sessionId = sessionId;
-        socket.userId = session.userId;
+        socket.userId = String(session.userId);
         return next();
       }
     }
@@ -107,7 +107,6 @@ export const runSocket = (server: any) => {
       if (isDisconnected) {
         // notify other users
         socket.broadcast.emit(SocketEvents.USER_DISCONNECTED, socket.userId);
-        console.log('DIsconnected', socket.sessionId);
         // update the connection status of the session
         Session.findByIdAndUpdate(
           socket.sessionId,
