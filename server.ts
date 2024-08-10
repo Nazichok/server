@@ -1,7 +1,6 @@
 import express, { NextFunction, Request, Response } from "express";
 import cors from "cors";
 import cookieSession from "cookie-session";
-import db from "./models/index";
 import dbConfig from "./config/db.config";
 import authConfig from "./config/auth.config";
 import authRoutes from "./routes/auth.routes";
@@ -11,6 +10,7 @@ import { errorHandler } from "./middlewares/error";
 import chatRoutes from "./routes/chat.routes";
 import messagesRoutes from "./routes/messages.routes";
 import { runSocket } from "./socket";
+import mongoose from "mongoose";
 
 const app = express();
 
@@ -48,7 +48,7 @@ messagesRoutes(app);
 const PORT = process.env.PORT || 8080;
 
 async function run() {
-  await db.mongoose.connect(dbConfig.URL);
+  await mongoose.connect(dbConfig.URL);
   const server = app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}.`);
   });

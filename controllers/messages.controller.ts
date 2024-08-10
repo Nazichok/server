@@ -1,7 +1,5 @@
 import { Request, Response } from "express";
-import db from "../models";
-
-const Message = db.message
+import Message from "../models/Message";
 
 export const getMessages = async (req: Request, res: Response) => {
   const { chatId } = req.query;

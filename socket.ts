@@ -1,7 +1,5 @@
 import { Server } from "socket.io";
-import db from "./models";
-import { randomBytes } from "crypto";
-import { connected } from "process";
+import Message from "./models/Message";
 
 export enum SocketEvents {
   USER_CONNECTED = "user connected",
@@ -12,11 +10,8 @@ export enum SocketEvents {
   CONNECTION = "connection",
   DISCONNECT = "disconnect",
   CONNECT = "connect",
+  MESSAGE_READ = "message read",
 }
-
-const randomId = () => randomBytes(8).toString("hex");
-
-const Message = db.message;
 
 declare module "socket.io" {
   interface Socket {
@@ -52,18 +47,23 @@ export const runSocket = (server: any) => {
 
     socket.broadcast.emit(SocketEvents.USER_CONNECTED, socket.userId);
 
-    socket.on(SocketEvents.PRIVATE_MESSAGE, async ({ text, chatId, to }) => {
-      const message = new Message({
-        chatId,
-        sender: socket.userId,
-        text,
-      });
-      const savedMessage = await message.save();
-      socket
-        .to(to)
-        .to(socket.userId)
-        .emit(SocketEvents.PRIVATE_MESSAGE, savedMessage);
-    });
+    socket.on(
+      SocketEvents.PRIVATE_MESSAGE,
+      async ({ text, chatId, to, date }) => {
+        const message = new Message({
+          chatId,
+          date,
+          sender: socket.userId,
+          text,
+        });
+        const savedMessage = await message.save();
+        socket
+          .to(to)
+          .to(socket.userId)
+          .emit(SocketEvents.PRIVATE_MESSAGE, savedMessage);
+        socket.emit(SocketEvents.PRIVATE_MESSAGE, savedMessage);
+      }
+    );
 
     // notify users upon disconnection
     socket.on(SocketEvents.DISCONNECT, async () => {
@@ -74,5 +74,16 @@ export const runSocket = (server: any) => {
         socket.broadcast.emit(SocketEvents.USER_DISCONNECTED, socket.userId);
       }
     });
+
+    socket.on(
+      SocketEvents.MESSAGE_READ,
+      ({ chatId, messageId, anotherUserId }) => {
+        Message.findByIdAndUpdate(messageId, { isRead: true }).exec();
+        socket
+          .to(anotherUserId)
+          .to(socket.userId)
+          .emit(SocketEvents.MESSAGE_READ, { messageId, chatId });
+      }
+    );
   });
 };

@@ -1,17 +1,17 @@
-import mongoose, { Types } from 'mongoose';
+import mongoose, { Types } from "mongoose";
 
 const MessageSchema = new mongoose.Schema({
-    text: String,
-    date: { type: Date, default: Date.now },
-    sender: {
-      type: Types.ObjectId,
-      ref: "User",
-    },
-    isRead: Boolean,
-    chatId: {
-      type: Types.ObjectId,
-      ref: "Chat",
-    }
+  text: String,
+  date: { type: Number, default: Date.now },
+  sender: {
+    type: Types.ObjectId,
+    ref: "User",
+  },
+  isRead: { type: Boolean, default: false },
+  chatId: {
+    type: Types.ObjectId,
+    ref: "Chat",
+  },
 });
 
-export default mongoose.model('Message', MessageSchema);
+export default mongoose.model("Message", MessageSchema);

@@ -2,10 +2,8 @@ import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import config from "../config/auth.config";
-import db from "../models";
-
-const User = db.user;
-const RefreshToken = db.refreshToken;
+import User from "../models/User";
+import RefreshToken from "../models/RefreshToken";
 
 export const signup = async (req: Request, res: Response) => {
   const user = new User({
@@ -31,6 +29,10 @@ export const signin = async (req: Request, res: Response) => {
 
     if (!user) {
       return res.status(404).send({ message: "User Not found." });
+    }
+
+    if (!user.password) {
+      return res.status(401).send({ message: "Invalid Password!" });
     }
 
     const passwordIsValid = bcrypt.compareSync(

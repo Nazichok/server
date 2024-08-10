@@ -1,9 +1,7 @@
 import { Request, Response } from "express";
-import db from "../models";
-
-const User = db.user;
-const Chat = db.chat;
-const Message = db.message
+import User from "../models/User";
+import Chat from "../models/Chat";
+import Message from "../models/Message";
 
 export const searchUsers = async (req: Request, res: Response) => {
   const searchTerm = req.query.query;
@@ -31,7 +29,7 @@ export const getChats = async (req: Request, res: Response) => {
       const lastMessage = await Message.findOne({ chatId: chat._id }).sort({
         date: "desc",
       }).limit(1);
-      const unreadCount = await Message.countDocuments({ chatId: chat._id, isRead: false, sender: anotherUser });
+      const unreadCount = await Message.countDocuments({ chatId: chat._id, isRead: false, sender: String(anotherUser) });
       return {
         _id: chat._id,
         user: user,
@@ -40,7 +38,7 @@ export const getChats = async (req: Request, res: Response) => {
       };
     })
   );
-  res.status(200).send(responseChats.sort((a, b) => b.lastMessage?.date - a.lastMessage?.date));
+  res.status(200).send(responseChats.sort((a, b) => (b.lastMessage?.date || 0) - (a.lastMessage?.date || 0)));
 };
 
 export const createChat = async (req: Request, res: Response) => {

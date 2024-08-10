@@ -1,8 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
-import db from '../models';
 import { Error } from 'mongoose';
-
-const User = db.user;
+import User from '../models/User';
 
 /**
  * Check if the provided username or email is already in use.
