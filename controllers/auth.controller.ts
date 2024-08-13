@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
+import jwt, { Secret } from "jsonwebtoken";
 import bcrypt from "bcrypt";
-import config from "../config/auth.config";
 import User from "../models/User";
 import RefreshToken from "../models/RefreshToken";
 
@@ -44,8 +43,12 @@ export const signin = async (req: Request, res: Response) => {
       return res.status(401).send({ message: "Invalid Password!" });
     }
 
-    const token = jwt.sign({ id: user.id }, config.secret, {
-      expiresIn: config.jwtExpiration,
+    if (!process.env.AUTH_SECRET) {
+      throw new Error("Please define the AUTH_SECRET environment variable.");
+    }
+
+    const token = jwt.sign({ id: user.id }, process.env.AUTH_SECRET as Secret, {
+      expiresIn: process.env.JWT_EXP,
     });
 
     let refreshToken = await RefreshToken.createToken(user);
@@ -90,11 +93,19 @@ export const refreshToken = async (req: Request, res: Response) => {
       });
     }
 
+    if (!process.env.AUTH_SECRET) {
+      throw new Error("Please define the AUTH_SECRET environment variable.");
+    }
+
+    if (!process.env.JWT_EXP) {
+      throw new Error("Please define the JWT_EXP environment variable.");
+    }
+
     let newAccessToken = jwt.sign(
       { id: refreshToken.user._id },
-      config.secret,
+      process.env.AUTH_SECRET,
       {
-        expiresIn: config.jwtExpiration,
+        expiresIn: parseInt(process.env.JWT_EXP),
       }
     );
 

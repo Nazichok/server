@@ -1,8 +1,7 @@
 import express, { NextFunction, Request, Response } from "express";
+import 'dotenv/config';
 import cors from "cors";
 import cookieSession from "cookie-session";
-import dbConfig from "./config/db.config";
-import authConfig from "./config/auth.config";
 import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
 import cookieParser from "cookie-parser";
@@ -30,10 +29,14 @@ app.use((_req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
+if (!process.env.COOKIE_SECRET) {
+  throw new Error("Please define the COOKIE_SECRET environment variable.");
+}
+
 app.use(
   cookieSession({
     name: "chat-app",
-    keys: [authConfig.cookieSecret],
+    keys: [process.env.COOKIE_SECRET],
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000,
   })
@@ -48,7 +51,10 @@ messagesRoutes(app);
 const PORT = process.env.PORT || 8080;
 
 async function run() {
-  await mongoose.connect(dbConfig.URL);
+  if (!process.env.DB_URL) {
+    throw new Error("Please define the DB_URL environment variable.");
+  }
+  await mongoose.connect(process.env.DB_URL);
   const server = app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}.`);
   });

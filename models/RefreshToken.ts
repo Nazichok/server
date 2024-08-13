@@ -1,6 +1,5 @@
 import { Document } from "mongoose";
 import mongoose, { Types } from "mongoose";
-import config from "../config/auth.config";
 import { v4 as uuidv4 } from "uuid";
 
 const RefreshTokenSchema = new mongoose.Schema(
@@ -17,8 +16,12 @@ const RefreshTokenSchema = new mongoose.Schema(
       createToken: async function (user: Document) {
         let expiredAt = new Date();
 
+        if (!process.env.JWT_REFRESH_EXP) {
+          throw new Error("Please define the JWT_REFRESH_EXP environment variable.");
+        }
+
         expiredAt.setSeconds(
-          expiredAt.getSeconds() + config.jwtRefreshExpiration
+          expiredAt.getSeconds() + parseInt(process.env.JWT_REFRESH_EXP)
         );
 
         let _token = uuidv4();

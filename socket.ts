@@ -1,5 +1,6 @@
 import { Server } from "socket.io";
 import Message from "./models/Message";
+import User from "./models/User";
 
 export enum SocketEvents {
   USER_CONNECTED = "user connected",
@@ -72,6 +73,7 @@ export const runSocket = (server: any) => {
       if (isDisconnected) {
         // notify other users
         socket.broadcast.emit(SocketEvents.USER_DISCONNECTED, socket.userId);
+        User.findByIdAndUpdate(socket.userId, { lastSeen: Date.now() }).exec();
       }
     });
 

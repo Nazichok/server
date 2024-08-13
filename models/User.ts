@@ -8,7 +8,7 @@ const UserSchema = new mongoose.Schema({
     email: String,
     username: String,
     chats: Array<Types.ObjectId>,
-    lastSeen: Date,
+    lastSeen: Number,
 });
 
 export default mongoose.model('User', UserSchema);

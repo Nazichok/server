@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from "express";
 import jwt, { JwtPayload } from "jsonwebtoken";
-import config from "../config/auth.config";
 
 declare global {
   namespace Express {
@@ -38,8 +37,12 @@ const verifyToken = (
     return res.status(403).send({ message: "No token provided!" });
   }
 
+  if (!process.env.AUTH_SECRET) {
+    throw new Error("Please define the AUTH_SECRET environment variable.");
+  }
+
   try {
-    const decoded = jwt.verify(token, config.secret) as JwtPayload;
+    const decoded = jwt.verify(token, process.env.AUTH_SECRET) as JwtPayload;
 
     req.userId = decoded.id;
     next();
