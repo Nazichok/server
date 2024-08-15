@@ -7,6 +7,7 @@ const UserSchema = new mongoose.Schema({
     age: Number,
     email: String,
     username: String,
+    img: String,
     chats: Array<Types.ObjectId>,
     lastSeen: Number,
 });

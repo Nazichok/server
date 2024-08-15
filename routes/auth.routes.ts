@@ -6,7 +6,6 @@ import {
   refreshToken,
 } from "../controllers/auth.controller";
 import verifySignIn from "../middlewares/verifySignIn";
-import verifyToken from "../middlewares/authJwt";
 
 export default function (app: Express) {
   app.post(

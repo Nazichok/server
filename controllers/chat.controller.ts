@@ -10,13 +10,10 @@ export const searchUsers = async (req: Request, res: Response) => {
       { username: { $regex: searchTerm, $options: "i" } },
       { email: { $regex: searchTerm, $options: "i" } },
     ],
-  }).limit(15);
-  res.status(200).send(
-    users.map((user) => ({
-      _id: user._id,
-      username: user.username,
-    }))
-  );
+  })
+    .select("-password")
+    .limit(15);
+  res.status(200).send(users);
 };
 
 export const getChats = async (req: Request, res: Response) => {
@@ -24,21 +21,34 @@ export const getChats = async (req: Request, res: Response) => {
   const chats = await Chat.find().or([{ user1: userId }, { user2: userId }]);
   const responseChats = await Promise.all(
     chats.map(async (chat) => {
-      const anotherUser = String(chat.user1) === userId ? chat.user2 : chat.user1;
+      const anotherUser =
+        String(chat.user1) === userId ? chat.user2 : chat.user1;
       const user = await User.findById(anotherUser).select("-password");
-      const lastMessage = await Message.findOne({ chatId: chat._id }).sort({
-        date: "desc",
-      }).limit(1);
-      const unreadCount = await Message.countDocuments({ chatId: chat._id, isRead: false, sender: String(anotherUser) });
+      const lastMessage = await Message.findOne({ chatId: chat._id })
+        .sort({
+          date: "desc",
+        })
+        .limit(1);
+      const unreadCount = await Message.countDocuments({
+        chatId: chat._id,
+        isRead: false,
+        sender: String(anotherUser),
+      });
       return {
         _id: chat._id,
         user: user,
         lastMessage: lastMessage,
-        unreadCount: unreadCount
+        unreadCount: unreadCount,
       };
     })
   );
-  res.status(200).send(responseChats.sort((a, b) => (b.lastMessage?.date || 0) - (a.lastMessage?.date || 0)));
+  res
+    .status(200)
+    .send(
+      responseChats.sort(
+        (a, b) => (b.lastMessage?.date || 0) - (a.lastMessage?.date || 0)
+      )
+    );
 };
 
 export const createChat = async (req: Request, res: Response) => {
