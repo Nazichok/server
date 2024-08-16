@@ -38,7 +38,7 @@ app.use(
     name: "chat-app",
     keys: [process.env.COOKIE_SECRET],
     httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000,
+    maxAge: 7 * 24 * 60 * 60 * 1000,
   })
 );
 

@@ -1,6 +1,7 @@
 import { Express } from "express";
 import verifyToken from "../middlewares/authJwt";
 import { allAccess, updateUserImg } from "../controllers/user.controller";
+import { upload } from "../misc/multer";
 
 /**
  * Mounts user routes on the Express app.
@@ -9,5 +10,5 @@ import { allAccess, updateUserImg } from "../controllers/user.controller";
  */
 export default function (app: Express): void {
   app.get("/api/test/all", verifyToken, allAccess);
-  app.post("/api/user/img", verifyToken, updateUserImg);
+  app.post("/api/user/img", verifyToken, upload.single("img"), updateUserImg);
 }
