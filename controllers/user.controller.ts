@@ -2,6 +2,9 @@ import { Request, Response } from "express";
 import { supabase } from "../misc/supabase";
 import { decode } from "base64-arraybuffer";
 import User from "../models/User";
+import sharp from "sharp";
+import { Socket } from "../socket-class";
+import { SocketEvents } from "../socket";
 
 export const allAccess = (_req: Request, res: Response): void => {
   res.status(200).send("Public Content.");
@@ -26,9 +29,10 @@ export const updateUserImg = async (
 
     // delete old profile picture; not using replacing to avoid caching images
     if (user?.img) {
+      const filename = user.img.split("/").slice(-1)[0];
       supabase.storage
         .from("profile-pictures")
-        .remove([user.img.split("/").slice(-1)[0]])
+        .remove([filename, filename + "thumbnail"])
         .then(({ error }) => {
           if (error) {
             throw error;
@@ -37,26 +41,69 @@ export const updateUserImg = async (
     }
 
     // upload the file to supabase
-    const { data, error } = await supabase.storage
-      .from("profile-pictures")
-      .upload(file.originalname + Date.now(), fileBase64, {
-        contentType: "image/png",
-        upsert: true,
-      });
+    const filename = file.originalname + Date.now();
+    let imageData: any;
+    await Promise.all([
+      (async () => {
+        const { data, error } = await supabase.storage
+          .from("profile-pictures")
+          .upload(filename, fileBase64, {
+            contentType: "image/png",
+            upsert: true,
+          });
 
-    if (error) {
-      throw error;
-    }
+        imageData = data;
+        if (error) {
+          console.log(error);
+          throw error;
+        }
+      })(),
+
+      (async () => {
+        const thumbnailBuffer = await sharp(file.buffer)
+          .resize(100, 100)
+          .toBuffer();
+        const { data, error } = await supabase.storage
+          .from("profile-pictures")
+          .upload(
+            filename + "thumbnail",
+            decode(thumbnailBuffer.toString("base64")),
+            {
+              contentType: "image/png",
+              upsert: true,
+            }
+          );
+        if (error) {
+          console.log(error);
+          throw error;
+        }
+      })(),
+    ]);
 
     // get public url of the uploaded file
     const { data: image } = supabase.storage
       .from("profile-pictures")
-      .getPublicUrl(data.path);
+      .getPublicUrl(imageData.path);
 
     User.findByIdAndUpdate(userId, { img: image.publicUrl }).exec();
 
+    try {
+      const socket = Socket.getSocket();
+      socket.emit(SocketEvents.USER_UPDATED, {
+        _id: userId,
+        img: image.publicUrl,
+      });
+      socket.to(userId).emit(SocketEvents.USER_UPDATED, {
+        _id: userId,
+        img: image.publicUrl,
+      });
+    } catch (error) {
+      console.log(error);
+    }
+
     res.status(200).json({ img: image.publicUrl });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ error: error });
   }
 };

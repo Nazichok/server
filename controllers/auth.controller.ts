@@ -62,6 +62,7 @@ export const signin = async (req: Request, res: Response) => {
       _id: user._id,
       username: user.username,
       email: user.email,
+      img: user.img,
     });
   } catch (err) {
     res.status(500).send({ message: JSON.stringify(err) });

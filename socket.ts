@@ -1,6 +1,7 @@
 import { Server } from "socket.io";
 import Message from "./models/Message";
 import User from "./models/User";
+import { Socket } from "./socket-class";
 
 export enum SocketEvents {
   USER_CONNECTED = "user connected",
@@ -12,6 +13,7 @@ export enum SocketEvents {
   DISCONNECT = "disconnect",
   CONNECT = "connect",
   MESSAGE_READ = "message read",
+  USER_UPDATED = "user updated",
 }
 
 declare module "socket.io" {
@@ -40,10 +42,34 @@ export const runSocket = (server: any) => {
   io.on(SocketEvents.CONNECTION, async (socket) => {
     socket.join(socket.userId);
 
-    const userIds = [];
-    for (let [_, socket] of io.of("/").sockets) {
-      userIds.push(socket.userId);
+    const chatUsers = socket.handshake.auth.rooms;
+    if (chatUsers?.length) {
+      await socket.join(chatUsers);
     }
+
+    Socket.setSocket(socket);
+
+    const userIds = await Promise.all(
+      chatUsers.map(async (userId: string) => {
+        let resultUserId = "";
+        const matchingSockets = await io.in(userId).fetchSockets();
+        console.log(
+          socket.userId,
+          userId,
+          "matchingSockets",
+          matchingSockets.map((s: any) => s.userId)
+        );
+        const matchingSocketsLength = matchingSockets.filter(
+          (s: any) => s.userId === userId
+        ).length;
+        if (matchingSocketsLength) {
+          console.log(userId, " is online");
+          resultUserId = userId;
+        }
+        return resultUserId;
+      })
+    );
+
     socket.emit(SocketEvents.USER_IDS, userIds);
 
     socket.broadcast.emit(SocketEvents.USER_CONNECTED, socket.userId);
@@ -69,7 +95,9 @@ export const runSocket = (server: any) => {
     // notify users upon disconnection
     socket.on(SocketEvents.DISCONNECT, async () => {
       const matchingSockets = await io.in(socket.userId).fetchSockets();
-      const isDisconnected = matchingSockets.length === 0;
+      const isDisconnected =
+        matchingSockets.filter((s: any) => s.userId === socket.userId)
+          .length === 0;
       if (isDisconnected) {
         // notify other users
         socket.broadcast.emit(SocketEvents.USER_DISCONNECTED, socket.userId);
@@ -87,5 +115,11 @@ export const runSocket = (server: any) => {
           .emit(SocketEvents.MESSAGE_READ, { messageId, chatId });
       }
     );
+
+    socket.on(SocketEvents.USER_UPDATED, ({ _id, img }) => {
+      socket
+        .to(_id)
+        .emit(SocketEvents.USER_UPDATED, { _id, img });
+    });
   });
 };
