@@ -50,17 +50,10 @@ export const runSocket = (server: any) => {
       chatUsers.map(async (userId: string) => {
         let resultUserId = "";
         const matchingSockets = await io.in(userId).fetchSockets();
-        console.log(
-          socket.userId,
-          userId,
-          "matchingSockets",
-          matchingSockets.map((s: any) => s.userId)
-        );
         const matchingSocketsLength = matchingSockets.filter(
           (s: any) => s.userId === userId
         ).length;
         if (matchingSocketsLength) {
-          console.log(userId, " is online");
           resultUserId = userId;
         }
         return resultUserId;
