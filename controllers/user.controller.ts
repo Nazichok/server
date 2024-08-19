@@ -3,8 +3,6 @@ import { supabase } from "../misc/supabase";
 import { decode } from "base64-arraybuffer";
 import User from "../models/User";
 import sharp from "sharp";
-import { Socket } from "../socket-class";
-import { SocketEvents } from "../socket";
 
 export const allAccess = (_req: Request, res: Response): void => {
   res.status(200).send("Public Content.");
@@ -86,20 +84,6 @@ export const updateUserImg = async (
       .getPublicUrl(imageData.path);
 
     User.findByIdAndUpdate(userId, { img: image.publicUrl }).exec();
-
-    try {
-      const socket = Socket.getSocket();
-      socket.emit(SocketEvents.USER_UPDATED, {
-        _id: userId,
-        img: image.publicUrl,
-      });
-      socket.to(userId).emit(SocketEvents.USER_UPDATED, {
-        _id: userId,
-        img: image.publicUrl,
-      });
-    } catch (error) {
-      console.log(error);
-    }
 
     res.status(200).json({ img: image.publicUrl });
   } catch (error) {

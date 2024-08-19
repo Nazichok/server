@@ -1,7 +1,6 @@
 import { Server } from "socket.io";
 import Message from "./models/Message";
 import User from "./models/User";
-import { Socket } from "./socket-class";
 
 export enum SocketEvents {
   USER_CONNECTED = "user connected",
@@ -46,8 +45,6 @@ export const runSocket = (server: any) => {
     if (chatUsers?.length) {
       await socket.join(chatUsers);
     }
-
-    Socket.setSocket(socket);
 
     const userIds = await Promise.all(
       chatUsers.map(async (userId: string) => {
@@ -117,9 +114,8 @@ export const runSocket = (server: any) => {
     );
 
     socket.on(SocketEvents.USER_UPDATED, ({ _id, img }) => {
-      socket
-        .to(_id)
-        .emit(SocketEvents.USER_UPDATED, { _id, img });
+      socket.broadcast.emit(SocketEvents.USER_UPDATED, { _id, img });
+      socket.to(_id).emit(SocketEvents.USER_UPDATED, { _id, img });
     });
   });
 };
