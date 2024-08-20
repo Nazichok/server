@@ -106,9 +106,9 @@ export const runSocket = (server: any) => {
       }
     );
 
-    socket.on(SocketEvents.USER_UPDATED, ({ _id, img }) => {
-      socket.broadcast.emit(SocketEvents.USER_UPDATED, { _id, img });
-      socket.to(_id).emit(SocketEvents.USER_UPDATED, { _id, img });
+    socket.on(SocketEvents.USER_UPDATED, ({ _id, ...rest }) => {
+      socket.broadcast.emit(SocketEvents.USER_UPDATED, { _id, ...rest });
+      socket.to(_id).emit(SocketEvents.USER_UPDATED, { _id, ...rest });
     });
   });
 };

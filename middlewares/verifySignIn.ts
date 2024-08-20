@@ -22,7 +22,7 @@ const checkDuplicateUsernameOrEmail = async (
     });
 
     if (user1) {
-      res.status(400).send({ message: "Failed! Username is already in use!" });
+      res.status(409).send({ message: "Failed! Username is already in use!" });
       return;
     }
 
@@ -32,7 +32,7 @@ const checkDuplicateUsernameOrEmail = async (
     });
 
     if (user2) {
-      res.status(400).send({ message: "Failed! Email is already in use!" });
+      res.status(409).send({ message: "Failed! Email is already in use!" });
       return;
     }
 

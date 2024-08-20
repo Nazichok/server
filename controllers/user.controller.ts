@@ -3,9 +3,50 @@ import { supabase } from "../misc/supabase";
 import { decode } from "base64-arraybuffer";
 import User from "../models/User";
 import sharp from "sharp";
+import bcrypt from "bcrypt";
 
 export const allAccess = (_req: Request, res: Response): void => {
   res.status(200).send("Public Content.");
+};
+
+export const updateUserInfo = async (req: Request, res: Response) => {
+  const updatedFields = req.body;
+
+  try {
+    const user = await User.findOne({
+      $or: Object.keys(updatedFields).map((key) => ({
+        [key]: updatedFields[key],
+      })),
+    });
+
+    if (user && user.id !== req.userId) {
+      let message = "";
+      Object.entries(updatedFields).forEach(([key, value]) => {
+        if (value === user[key as keyof typeof user]) {
+          message += `${key}, `;
+        }
+      });
+      return res.status(400).send({ message: `${message} already exists!` });
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.userId,
+      updatedFields,
+      { new: true }
+    );
+    if (updatedUser) {
+      res.status(200).send({
+        _id: updatedUser.id,
+        username: updatedUser.username,
+        email: updatedUser.email,
+      });
+    } else {
+      res.status(400).send({ message: "Failed to update user!" });
+    }
+  } catch (err) {
+    console.log(err);
+    res.status(500).send({ message: "Failed to update user!" });
+  }
 };
 
 export const updateUserImg = async (
@@ -90,4 +131,36 @@ export const updateUserImg = async (
     console.log(error);
     res.status(500).json({ error: error });
   }
+};
+
+export const updateUserPassword = async (
+  req: Request,
+  res: Response
+) => {
+  const { userId } = req;
+  const { oldPassword, newPassword } = req.body;
+  const user = await User.findById(userId);
+  if (!user) {
+    res.status(404).json({ message: "User not found" });
+    return;
+  }
+
+  if (!user.password) {
+    return res.status(401).send({ message: "User has no current password" });
+  }
+
+  const isMatch = bcrypt.compareSync(oldPassword, user.password);
+
+  if (!isMatch) {
+    return res.status(401).send({ message: "Invalid password" });
+  }
+
+  try {
+    await user.updateOne({ password: bcrypt.hashSync(newPassword, 8) });
+  } catch (err) {
+    console.log(err);
+    res.status(500).send({ message: "Failed to update user password!" });
+  }
+
+  return res.status(204).send("Successfully updated user password!");
 };
