@@ -10,5 +10,6 @@ declare namespace NodeJS {
     SUPABASE_ANON_KEY: string;
     BCRYPT_SALT: string;
     CLIENT_URL: string;
+    DOMAIN_NAME: string;
   }
 }
