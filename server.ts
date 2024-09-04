@@ -23,7 +23,14 @@ var corsOptions = {
   origin: [process.env.CLIENT_URL],
 };
 
-app.use(morgan("dev"));
+app.enable("trust proxy");
+app.use(
+  morgan("combined", {
+    skip: function (req, res) {
+      return res.statusCode < 400;
+    },
+  })
+);
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -34,8 +41,6 @@ app.use((_req: Request, res: Response, next: NextFunction) => {
   res.header("Access-Control-Allow-Headers", "Origin, Content-Type, Accept");
   next();
 });
-
-console.log(process.env.NODE_ENV);
 
 app.use(
   cookieSession({
