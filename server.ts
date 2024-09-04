@@ -35,26 +35,16 @@ app.use((_req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
-if (!process.env.COOKIE_SECRET) {
-  throw new Error("Please define the COOKIE_SECRET environment variable.");
-}
-
 app.use(
   cookieSession({
     name: "chat-app",
-    keys: [process.env.COOKIE_SECRET],
+    keys: [process.env.COOKIE_SECRET || "genericSecret"],
     httpOnly: true,
     maxAge: 7 * 24 * 60 * 60 * 1000,
-    sameSite: "none",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    secure: process.env.NODE_ENV === "production",
   })
 );
-
-app.use((req: Request, _: Response, next: NextFunction) => {
-  if (req.sessionOptions) {
-    req.sessionOptions = { ...req.sessionOptions, secure: false };
-  }
-  next();
-});
 
 authRoutes(app);
 userRoutes(app);
