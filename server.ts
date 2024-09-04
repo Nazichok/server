@@ -10,14 +10,19 @@ import chatRoutes from "./routes/chat.routes";
 import messagesRoutes from "./routes/messages.routes";
 import { runSocket } from "./socket";
 import mongoose from "mongoose";
+import morgan from "morgan";
 
 const app = express();
 
+if (!process.env.CLIENT_URL) {
+  throw new Error("Please define the CLIENT_URL environment variable.");
+}
+
 var corsOptions = {
   credentials: true,
-  origin: ["http://localhost:4200"],
 };
 
+app.use(morgan("dev"));
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

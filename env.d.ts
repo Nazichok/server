@@ -8,5 +8,7 @@ declare namespace NodeJS {
     DB_URL: string;
     SUPABASE_URL: string;
     SUPABASE_ANON_KEY: string;
+    BCRYPT_SALT: string;
+    CLIENT_URL: string;
   }
 }

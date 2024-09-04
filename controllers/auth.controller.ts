@@ -3,12 +3,21 @@ import jwt, { Secret } from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import User from "../models/User";
 import RefreshToken from "../models/RefreshToken";
+import ResetPasswordToken from "../models/ResetPasswordToken";
+import crypto from "crypto";
+import { sendEmail } from "../misc/email";
 
 export const signup = async (req: Request, res: Response) => {
+  if (!process.env.BCRYPT_SALT) {
+    throw new Error("Please define the BCRYPT_SALT environment variable.");
+  }
   const user = new User({
     username: req.body.username,
     email: req.body.email,
-    password: bcrypt.hashSync(req.body.password, 8),
+    password: bcrypt.hashSync(
+      req.body.password,
+      Number(process.env.BCRYPT_SALT)
+    ),
   });
 
   try {
@@ -80,11 +89,12 @@ export const refreshToken = async (req: Request, res: Response) => {
     let refreshToken = await RefreshToken.findOne({ token: requestToken });
 
     if (!refreshToken) {
-      return res.status(403).json({ message: "Refresh token is not in database!" });
+      return res
+        .status(403)
+        .json({ message: "Refresh token is not in database!" });
     }
 
     if (RefreshToken.verifyExpiration(refreshToken)) {
-
       RefreshToken.findByIdAndDelete(refreshToken._id, {
         useFindAndModify: false,
       }).exec();
@@ -133,4 +143,82 @@ export const signout = async (
   } catch (err) {
     return next(err);
   }
+};
+
+export const resetPasswordRequest = async (req: Request, res: Response) => {
+  const { email } = req.body;
+
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    return res.status(404).send({ message: "User not found" });
+  }
+
+  const token = await ResetPasswordToken.findOne({ userId: user._id });
+  if (token) {
+    await token.deleteOne();
+  }
+
+  const resetToken = crypto.randomBytes(32).toString("hex");
+
+  if (!process.env.BCRYPT_SALT) {
+    throw new Error("Please define the BCRYPT_SALT environment variable.");
+  }
+
+  const hash = await bcrypt.hash(resetToken, Number(process.env.BCRYPT_SALT));
+
+  await new ResetPasswordToken({
+    userId: user._id,
+    token: hash,
+    createdAt: Date.now(),
+  }).save();
+
+  if (!process.env.CLIENT_URL) {
+    throw new Error("Please define the CLIENT_URL environment variable.");
+  }
+
+  const link = `${process.env.CLIENT_URL}/reset-password?token=${resetToken}&id=${user._id}`;
+  return sendEmail(
+    user.email,
+    "Password Reset Request",
+    { name: user.username, link: link },
+    "../template/requestResetPassword.handlebars",
+    res
+  );
+};
+
+export const resetPassword = async (req: Request, res: Response) => {
+  const { userId, token, password } = req.body;
+  if (!userId || !token || !password) {
+    return res.status(400).send({ message: "All fields are required" });
+  }
+  const user = await User.findById({ _id: userId });
+  if (!user) {
+    throw new Error("User not found");
+  }
+  let passwordResetToken = await ResetPasswordToken.findOne({ userId });
+  if (!passwordResetToken) {
+    throw new Error("Invalid or expired password reset token");
+  }
+  const isValid = await bcrypt.compare(token, passwordResetToken.token);
+  if (!isValid) {
+    throw new Error("Invalid or expired password reset token");
+  }
+
+  if (!process.env.BCRYPT_SALT) {
+    throw new Error("Please define the BCRYPT_SALT environment variable.");
+  }
+  const hash = bcrypt.hashSync(password, Number(process.env.BCRYPT_SALT));
+  await user.updateOne({ password: hash });
+  passwordResetToken.deleteOne().exec();
+
+  return sendEmail(
+    user.email,
+    "Password Reset Successfully",
+    {
+      name: user.username,
+    },
+    "../template/resetPassword.handlebars",
+    res
+  );
 };

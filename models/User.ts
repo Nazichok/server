@@ -5,8 +5,14 @@ const UserSchema = new mongoose.Schema({
     lastName: String,
     password: String,
     age: Number,
-    email: String,
-    username: String,
+    email: {
+      type: String,
+      required: true,
+    },
+    username: {
+      type: String,
+      required: true,
+    },
     img: String,
     chats: Array<Types.ObjectId>,
     lastSeen: Number,

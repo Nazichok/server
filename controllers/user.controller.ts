@@ -156,7 +156,10 @@ export const updateUserPassword = async (
   }
 
   try {
-    await user.updateOne({ password: bcrypt.hashSync(newPassword, 8) });
+    if (!process.env.BCRYPT_SALT) {
+      throw new Error("Please define the BCRYPT_SALT environment variable.");
+    }
+    await user.updateOne({ password: bcrypt.hashSync(newPassword, Number(process.env.BCRYPT_SALT)) });
   } catch (err) {
     console.log(err);
     res.status(500).send({ message: "Failed to update user password!" });
