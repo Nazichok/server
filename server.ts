@@ -1,5 +1,5 @@
 import express, { NextFunction, Request, Response } from "express";
-import 'dotenv/config';
+import "dotenv/config";
 import cors from "cors";
 import cookieSession from "cookie-session";
 import authRoutes from "./routes/auth.routes";
@@ -46,9 +46,15 @@ app.use(
     httpOnly: true,
     maxAge: 7 * 24 * 60 * 60 * 1000,
     sameSite: "none",
-    secure: true
   })
 );
+
+app.use((req: Request, _: Response, next: NextFunction) => {
+  if (req.session && req.session.userId) {
+    req.sessionOptions = { ...req.sessionOptions, secure: false };
+  }
+  next();
+});
 
 authRoutes(app);
 userRoutes(app);
