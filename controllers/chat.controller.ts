@@ -29,7 +29,7 @@ export const getChats = async (req: Request, res: Response) => {
           date: "desc",
         })
         .limit(1);
-      const unreadCount = await Message.countDocuments({
+      const unreadCount = userId === String(anotherUser) ? 0 : await Message.countDocuments({
         chatId: chat._id,
         isRead: false,
         sender: String(anotherUser),
