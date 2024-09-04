@@ -20,6 +20,7 @@ if (!process.env.CLIENT_URL) {
 
 var corsOptions = {
   credentials: true,
+  origin: [process.env.CLIENT_URL],
 };
 
 app.use(morgan("dev"));
