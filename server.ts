@@ -35,6 +35,8 @@ app.use((_req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
+console.log(process.env.NODE_ENV);
+
 app.use(
   cookieSession({
     name: "chat-app",
