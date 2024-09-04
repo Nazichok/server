@@ -50,6 +50,7 @@ app.use(
     maxAge: 7 * 24 * 60 * 60 * 1000,
     sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     secure: process.env.NODE_ENV === "production",
+    domain: process.env.NODE_ENV === "production" ? ".chat-app-7a64.onrender.com" : undefined,
   })
 );
 
