@@ -66,16 +66,11 @@ export const runSocket = (server: any) => {
 
     socket.on(
       SocketEvents.PRIVATE_MESSAGE,
-      async ({ text, chatId, to, date }) => {
-        const message = new Message({
-          chatId,
-          date,
-          sender: socket.userId,
-          text,
-        });
+      async (messageObj) => {
+        const message = new Message(messageObj);
         const savedMessage = await message.save();
         socket
-          .to(to)
+          .to(messageObj.to)
           .to(socket.userId)
           .emit(SocketEvents.PRIVATE_MESSAGE, savedMessage);
         socket.emit(SocketEvents.PRIVATE_MESSAGE, savedMessage);
