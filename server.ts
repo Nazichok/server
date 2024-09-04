@@ -50,7 +50,7 @@ app.use(
 );
 
 app.use((req: Request, _: Response, next: NextFunction) => {
-  if (req.session && req.session.userId) {
+  if (req.sessionOptions) {
     req.sessionOptions = { ...req.sessionOptions, secure: false };
   }
   next();
