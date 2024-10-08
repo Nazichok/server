@@ -17,4 +17,4 @@ const tokenSchema = new mongoose.Schema({
   },
 });
 
-export default mongoose.model("ResetPasswordToken", tokenSchema);
+export default mongoose.model("EmailToken", tokenSchema);

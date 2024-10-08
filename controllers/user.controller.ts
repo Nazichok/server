@@ -113,7 +113,6 @@ export const updateUserImg = async (
             }
           );
         if (error) {
-          console.log(error);
           throw error;
         }
       })(),
@@ -128,15 +127,11 @@ export const updateUserImg = async (
 
     res.status(200).json({ img: image.publicUrl });
   } catch (error) {
-    console.log(error);
-    res.status(500).json({ error: error });
+    res.status(500).json({ error: JSON.stringify(error) });
   }
 };
 
-export const updateUserPassword = async (
-  req: Request,
-  res: Response
-) => {
+export const updateUserPassword = async (req: Request, res: Response) => {
   const { userId } = req;
   const { oldPassword, newPassword } = req.body;
   const user = await User.findById(userId);
@@ -159,7 +154,9 @@ export const updateUserPassword = async (
     if (!process.env.BCRYPT_SALT) {
       throw new Error("Please define the BCRYPT_SALT environment variable.");
     }
-    await user.updateOne({ password: bcrypt.hashSync(newPassword, Number(process.env.BCRYPT_SALT)) });
+    await user.updateOne({
+      password: bcrypt.hashSync(newPassword, Number(process.env.BCRYPT_SALT)),
+    });
   } catch (err) {
     console.log(err);
     res.status(500).send({ message: "Failed to update user password!" });

@@ -16,6 +16,7 @@ const UserSchema = new mongoose.Schema({
     img: String,
     chats: Array<Types.ObjectId>,
     lastSeen: Number,
+    verified: Boolean,
 });
 
 export default mongoose.model('User', UserSchema);

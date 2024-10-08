@@ -6,6 +6,7 @@ import {
   refreshToken,
   resetPasswordRequest,
   resetPassword,
+  confirmEmail,
 } from "../controllers/auth.controller";
 import verifySignIn from "../middlewares/verifySignIn";
 
@@ -25,4 +26,6 @@ export default function (app: Express) {
   app.post("/api/auth/resetpasswordrequest", resetPasswordRequest);
 
   app.post("/api/auth/resetpassword", resetPassword);
+
+  app.post("/api/auth/confirmemail", confirmEmail);
 }

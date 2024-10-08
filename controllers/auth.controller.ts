@@ -3,7 +3,7 @@ import jwt, { Secret } from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import User from "../models/User";
 import RefreshToken from "../models/RefreshToken";
-import ResetPasswordToken from "../models/ResetPasswordToken";
+import EmailToken from "../models/EmailToken";
 import crypto from "crypto";
 import { sendEmail } from "../misc/email";
 
@@ -11,21 +11,37 @@ export const signup = async (req: Request, res: Response) => {
   if (!process.env.BCRYPT_SALT) {
     throw new Error("Please define the BCRYPT_SALT environment variable.");
   }
-  const user = new User({
-    username: req.body.username,
-    email: req.body.email,
-    password: bcrypt.hashSync(
-      req.body.password,
-      Number(process.env.BCRYPT_SALT)
-    ),
-  });
 
   try {
-    await user.save();
+    const user = await new User({
+      username: req.body.username,
+      email: req.body.email,
+      password: bcrypt.hashSync(
+        req.body.password,
+        Number(process.env.BCRYPT_SALT)
+      ),
+    }).save();
 
-    res.status(200).send({ message: "User was registered successfully!" });
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const hash = await bcrypt.hash(resetToken, Number(process.env.BCRYPT_SALT));
+
+    const token = await new EmailToken({
+      userId: user._id,
+      token: hash,
+      createdAt: Date.now(),
+    }).save();
+
+    const link = `${ process.env.CLIENT_URL }/confirm-email?id=${user._id}&token=${resetToken}`;
+    await sendEmail(
+      user.email,
+      "Registration Successful",
+      { name: user.username, link },
+      "../template/confirmEmail.handlebars"
+    );
+
+    return res.status(200).send({ message: "Registration Successful! Check your email" });
   } catch (err) {
-    res.status(500).send({ message: JSON.stringify(err) });
+    return res.status(500).send({ message: JSON.stringify(err) });
   }
 };
 
@@ -41,6 +57,10 @@ export const signin = async (req: Request, res: Response) => {
 
     if (!user.password) {
       return res.status(401).send({ message: "Invalid Password!" });
+    }
+
+    if (!user.verified) {
+      return res.status(401).send({ message: "Please verify your email!" });
     }
 
     const passwordIsValid = bcrypt.compareSync(
@@ -137,8 +157,9 @@ export const signout = async (
 ) => {
   try {
     const { userId } = req.body;
+    const token = req?.session?.refreshToken;
     req.session = null;
-    await RefreshToken.deleteMany({ user: { $eq: userId } });
+    await RefreshToken.findOneAndDelete({ token, user: userId });
     return res.status(200).send({ message: "You've been signed out!" });
   } catch (err) {
     return next(err);
@@ -146,79 +167,125 @@ export const signout = async (
 };
 
 export const resetPasswordRequest = async (req: Request, res: Response) => {
-  const { email } = req.body;
+  try {
+    const { email } = req.body;
 
-  const user = await User.findOne({ email });
+    const user = await User.findOne({ email });
 
-  if (!user) {
-    return res.status(404).send({ message: "User not found" });
+    if (!user) {
+      return res.status(404).send({ message: "User not found" });
+    }
+
+    const token = await EmailToken.findOne({ userId: user._id });
+    if (token) {
+      await token.deleteOne();
+    }
+
+    const resetToken = crypto.randomBytes(32).toString("hex");
+
+    if (!process.env.BCRYPT_SALT) {
+      throw new Error("Please define the BCRYPT_SALT environment variable.");
+    }
+
+    const hash = await bcrypt.hash(resetToken, Number(process.env.BCRYPT_SALT));
+
+    await new EmailToken({
+      userId: user._id,
+      token: hash,
+      createdAt: Date.now(),
+    }).save();
+
+    if (!process.env.CLIENT_URL) {
+      throw new Error("Please define the CLIENT_URL environment variable.");
+    }
+
+    const link = `${process.env.CLIENT_URL}/reset-password?token=${resetToken}&id=${user._id}`;
+    await sendEmail(
+      user.email,
+      "Password Reset Request",
+      { name: user.username, link: link },
+      "../template/requestResetPassword.handlebars"
+    );
+
+    return res
+      .status(200)
+      .send({ message: "Password reset link sent to your email" });
+  } catch (err) {
+    return res.status(500).send({ message: JSON.stringify(err) });
   }
-
-  const token = await ResetPasswordToken.findOne({ userId: user._id });
-  if (token) {
-    await token.deleteOne();
-  }
-
-  const resetToken = crypto.randomBytes(32).toString("hex");
-
-  if (!process.env.BCRYPT_SALT) {
-    throw new Error("Please define the BCRYPT_SALT environment variable.");
-  }
-
-  const hash = await bcrypt.hash(resetToken, Number(process.env.BCRYPT_SALT));
-
-  await new ResetPasswordToken({
-    userId: user._id,
-    token: hash,
-    createdAt: Date.now(),
-  }).save();
-
-  if (!process.env.CLIENT_URL) {
-    throw new Error("Please define the CLIENT_URL environment variable.");
-  }
-
-  const link = `${process.env.CLIENT_URL}/reset-password?token=${resetToken}&id=${user._id}`;
-  return sendEmail(
-    user.email,
-    "Password Reset Request",
-    { name: user.username, link: link },
-    "../template/requestResetPassword.handlebars",
-    res
-  );
 };
 
 export const resetPassword = async (req: Request, res: Response) => {
-  const { userId, token, password } = req.body;
-  if (!userId || !token || !password) {
-    return res.status(400).send({ message: "All fields are required" });
-  }
-  const user = await User.findById({ _id: userId });
-  if (!user) {
-    throw new Error("User not found");
-  }
-  let passwordResetToken = await ResetPasswordToken.findOne({ userId });
-  if (!passwordResetToken) {
-    throw new Error("Invalid or expired password reset token");
-  }
-  const isValid = await bcrypt.compare(token, passwordResetToken.token);
-  if (!isValid) {
-    throw new Error("Invalid or expired password reset token");
-  }
+  try {
+    const { userId, token, password } = req.body;
+    if (!userId || !password) {
+      return res.status(400).send({ message: "All fields are required" });
+    }
+    if (!token) {
+      return res.status(400).send({ message: "No token provided" });
+    }
+    const user = await User.findById({ _id: userId });
+    if (!user) {
+      throw new Error("User not found");
+    }
+    let passwordResetToken = await EmailToken.findOne({ userId });
+    if (!passwordResetToken) {
+      throw new Error("Invalid or expired password reset token");
+    }
+    const isValid = bcrypt.compareSync(token, passwordResetToken.token);
+    if (!isValid) {
+      throw new Error("Invalid or expired password reset token");
+    }
 
-  if (!process.env.BCRYPT_SALT) {
-    throw new Error("Please define the BCRYPT_SALT environment variable.");
-  }
-  const hash = bcrypt.hashSync(password, Number(process.env.BCRYPT_SALT));
-  await user.updateOne({ password: hash });
-  passwordResetToken.deleteOne().exec();
+    if (!process.env.BCRYPT_SALT) {
+      throw new Error("Please define the BCRYPT_SALT environment variable.");
+    }
+    const hash = bcrypt.hashSync(password, Number(process.env.BCRYPT_SALT));
+    await user.updateOne({ password: hash });
+    passwordResetToken.deleteOne().exec();
 
-  return sendEmail(
-    user.email,
-    "Password Reset Successfully",
-    {
-      name: user.username,
-    },
-    "../template/resetPassword.handlebars",
-    res
-  );
+    await sendEmail(
+      user.email,
+      "Password Reset Successfully",
+      {
+        name: user.username,
+      },
+      "../template/resetPassword.handlebars"
+    );
+
+    return res.status(200).send({ message: "Password reset successfully" });
+  } catch (error) {
+    return res.status(500).send({ message: JSON.stringify(error) });
+  }
+};
+
+export const confirmEmail = async (req: Request, res: Response) => {
+  try {
+    const { userId, token } = req.body;
+    if (!userId || !token) {
+      return res.status(400).send({ message: "All fields are required" });
+    }
+
+    const user = await User.findById({ _id: userId });
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    let emailToken = await EmailToken.findOne({ userId });
+    if (!emailToken) {
+      throw new Error("Invalid or expired email token");
+    }
+
+    const isValid = bcrypt.compareSync(token, emailToken.token);
+
+    if (!isValid) {
+      throw new Error("Invalid or expired email token");
+    }
+
+    await user.updateOne({ verified: true });
+    emailToken.deleteOne().exec();
+    return res.status(200).send({ message: "Email confirmed successfully" });
+  } catch (error: Error | any) {
+    return res.status(500).send({ message: JSON.stringify(error?.message) });
+  }
 };

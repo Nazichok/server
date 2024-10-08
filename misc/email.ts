@@ -4,7 +4,7 @@ import fs from "fs";
 import path from "path";
 import { Response } from "express";
 
-export const sendEmail = (
+export const sendEmail = async (
   email: string,
   subject: string,
   payload: {
@@ -12,7 +12,6 @@ export const sendEmail = (
     link?: string;
   },
   template: string,
-  res: Response
 ) => {
   try {
     // create reusable transporter object using the default SMTP transport
@@ -27,26 +26,16 @@ export const sendEmail = (
 
     const source = fs.readFileSync(path.join(__dirname, template), "utf8");
     const compiledTemplate = handlebars.compile(source);
-    const options = () => {
-      return {
-        from: process.env.FROM_EMAIL,
-        to: email,
-        subject: subject,
-        html: compiledTemplate(payload),
-      };
+    const options = {
+      from: process.env.FROM_EMAIL,
+      to: email,
+      subject: subject,
+      html: compiledTemplate(payload),
     };
 
     // Send email
-    transporter.sendMail(options(), (error) => {
-      if (error) {
-        return res.status(500).send("Error sending email");
-      } else {
-        return res.status(200).json({
-          success: true,
-        });
-      }
-    });
+    await transporter.sendMail(options);
   } catch (error) {
-    return res.status(500).send({ message: JSON.stringify(error) });
+    return error;
   }
 };
