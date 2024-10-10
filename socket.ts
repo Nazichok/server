@@ -104,6 +104,7 @@ export const runSocket = (server: any) => {
     socket.on(SocketEvents.USER_UPDATED, ({ _id, ...rest }) => {
       socket.broadcast.emit(SocketEvents.USER_UPDATED, { _id, ...rest });
       socket.to(_id).emit(SocketEvents.USER_UPDATED, { _id, ...rest });
+      socket.emit(SocketEvents.USER_UPDATED, { _id, ...rest });
     });
   });
 };
