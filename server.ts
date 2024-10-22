@@ -11,6 +11,7 @@ import messagesRoutes from "./routes/messages.routes";
 import { runSocket } from "./socket";
 import mongoose from "mongoose";
 import morgan from "morgan";
+import googleAuth from "./misc/googleAuth";
 
 const app = express();
 
@@ -58,6 +59,8 @@ authRoutes(app);
 userRoutes(app);
 chatRoutes(app);
 messagesRoutes(app);
+
+app.use(googleAuth);
 
 // set port, listen for requests
 const PORT = process.env.PORT || 8080;

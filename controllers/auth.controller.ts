@@ -25,13 +25,13 @@ export const signup = async (req: Request, res: Response) => {
     const resetToken = crypto.randomBytes(32).toString("hex");
     const hash = await bcrypt.hash(resetToken, Number(process.env.BCRYPT_SALT));
 
-    const token = await new EmailToken({
+    await new EmailToken({
       userId: user._id,
       token: hash,
       createdAt: Date.now(),
     }).save();
 
-    const link = `${ process.env.CLIENT_URL }/confirm-email?id=${user._id}&token=${resetToken}`;
+    const link = `${process.env.CLIENT_URL}/confirm-email?id=${user._id}&token=${resetToken}`;
     await sendEmail(
       user.email,
       "Registration Successful",
@@ -39,7 +39,9 @@ export const signup = async (req: Request, res: Response) => {
       "../template/confirmEmail.handlebars"
     );
 
-    return res.status(200).send({ message: "Registration Successful! Check your email" });
+    return res
+      .status(200)
+      .send({ message: "Registration Successful! Check your email" });
   } catch (err) {
     return res.status(500).send({ message: JSON.stringify(err) });
   }
@@ -168,6 +170,10 @@ export const signout = async (
 
 export const resetPasswordRequest = async (req: Request, res: Response) => {
   try {
+    if (!process.env.BCRYPT_SALT) {
+      throw new Error("Please define the BCRYPT_SALT environment variable.");
+    }
+
     const { email } = req.body;
 
     const user = await User.findOne({ email });
@@ -182,11 +188,6 @@ export const resetPasswordRequest = async (req: Request, res: Response) => {
     }
 
     const resetToken = crypto.randomBytes(32).toString("hex");
-
-    if (!process.env.BCRYPT_SALT) {
-      throw new Error("Please define the BCRYPT_SALT environment variable.");
-    }
-
     const hash = await bcrypt.hash(resetToken, Number(process.env.BCRYPT_SALT));
 
     await new EmailToken({
@@ -284,7 +285,7 @@ export const confirmEmail = async (req: Request, res: Response) => {
 
     await user.updateOne({ verified: true });
     emailToken.deleteOne().exec();
-    return res.status(200).send({ message: "Email confirmed successfully" });
+    return res.status(200).send({ message: "Email confirmed successfully, You can sign in now" });
   } catch (error: Error | any) {
     return res.status(500).send({ message: JSON.stringify(error?.message) });
   }

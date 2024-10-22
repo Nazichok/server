@@ -24,7 +24,7 @@ declare module "socket.io" {
 export const runSocket = (server: any) => {
   const io = new Server(server, {
     cors: {
-      origin: "*",
+      origin: process.env.CLIENT_URL,
     },
   });
 
@@ -62,20 +62,17 @@ export const runSocket = (server: any) => {
 
     socket.emit(SocketEvents.USER_IDS, userIds);
 
-    socket.broadcast.emit(SocketEvents.USER_CONNECTED, socket.userId);
+    socket.emit(SocketEvents.USER_CONNECTED, socket.userId);
 
-    socket.on(
-      SocketEvents.PRIVATE_MESSAGE,
-      async (messageObj) => {
-        const message = new Message(messageObj);
-        const savedMessage = await message.save();
-        socket
-          .to(messageObj.to)
-          .to(socket.userId)
-          .emit(SocketEvents.PRIVATE_MESSAGE, savedMessage);
-        socket.emit(SocketEvents.PRIVATE_MESSAGE, savedMessage);
-      }
-    );
+    socket.on(SocketEvents.PRIVATE_MESSAGE, async (messageObj) => {
+      const message = new Message(messageObj);
+      const savedMessage = await message.save();
+      socket
+        .to(messageObj.to)
+        .to(socket.userId)
+        .emit(SocketEvents.PRIVATE_MESSAGE, savedMessage);
+      socket.emit(SocketEvents.PRIVATE_MESSAGE, savedMessage);
+    });
 
     // notify users upon disconnection
     socket.on(SocketEvents.DISCONNECT, async () => {
@@ -85,7 +82,8 @@ export const runSocket = (server: any) => {
           .length === 0;
       if (isDisconnected) {
         // notify other users
-        socket.broadcast.emit(SocketEvents.USER_DISCONNECTED, socket.userId);
+        // socket.broadcast.emit(SocketEvents.USER_DISCONNECTED, socket.userId);
+        socket.in(socket.userId).emit(SocketEvents.USER_DISCONNECTED, socket.userId);
         User.findByIdAndUpdate(socket.userId, { lastSeen: Date.now() }).exec();
       }
     });
