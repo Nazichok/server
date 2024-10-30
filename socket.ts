@@ -10,15 +10,11 @@ export enum SocketEvents {
   CONNECT_ERROR = "connect error",
   CONNECTION = "connection",
   DISCONNECT = "disconnect",
+  DISCONNECTING = "disconnecting",
   CONNECT = "connect",
   MESSAGE_READ = "message read",
   USER_UPDATED = "user updated",
-}
-
-declare module "socket.io" {
-  interface Socket {
-    userId: string;
-  }
+  CHAT_CREATED = "chat created",
 }
 
 export const runSocket = (server: any) => {
@@ -34,27 +30,27 @@ export const runSocket = (server: any) => {
       return next(new Error("User error"));
     }
 
-    socket.userId = userId;
+    socket.data.userId = userId;
     next();
   });
 
   io.on(SocketEvents.CONNECTION, async (socket) => {
-    socket.join(socket.userId);
+    socket.join(socket.data.userId);
 
-    const chatUsers = socket.handshake.auth.rooms;
-    if (chatUsers?.length) {
-      await socket.join(chatUsers);
+    const chats = socket.handshake.auth.rooms;
+    if (chats?.length) {
+      await socket.join(chats);
     }
 
     const userIds = await Promise.all(
-      chatUsers.map(async (userId: string) => {
+      chats.map(async (chatId: string) => {
         let resultUserId = "";
-        const matchingSockets = await io.in(userId).fetchSockets();
-        const matchingSocketsLength = matchingSockets.filter(
-          (s: any) => s.userId === userId
-        ).length;
-        if (matchingSocketsLength) {
-          resultUserId = userId;
+        const matchingSockets = await io.in(chatId).fetchSockets();
+        const anotherUserIds = matchingSockets.filter(
+          (s: any) => s.data.userId !== socket.data.userId
+        );
+        if (anotherUserIds.length) {
+          resultUserId = anotherUserIds[0].data.userId;
         }
         return resultUserId;
       })
@@ -62,47 +58,55 @@ export const runSocket = (server: any) => {
 
     socket.emit(SocketEvents.USER_IDS, userIds);
 
-    socket.emit(SocketEvents.USER_CONNECTED, socket.userId);
+    socket.rooms.forEach((room) => {
+      socket.to(room).emit(SocketEvents.USER_CONNECTED, socket.data.userId);
+    });
 
     socket.on(SocketEvents.PRIVATE_MESSAGE, async (messageObj) => {
       const message = new Message(messageObj);
       const savedMessage = await message.save();
       socket
-        .to(messageObj.to)
-        .to(socket.userId)
+        .to(messageObj.chatId)
         .emit(SocketEvents.PRIVATE_MESSAGE, savedMessage);
       socket.emit(SocketEvents.PRIVATE_MESSAGE, savedMessage);
     });
 
     // notify users upon disconnection
-    socket.on(SocketEvents.DISCONNECT, async () => {
-      const matchingSockets = await io.in(socket.userId).fetchSockets();
-      const isDisconnected =
-        matchingSockets.filter((s: any) => s.userId === socket.userId)
-          .length === 0;
-      if (isDisconnected) {
-        // notify other users
-        // socket.broadcast.emit(SocketEvents.USER_DISCONNECTED, socket.userId);
-        socket.in(socket.userId).emit(SocketEvents.USER_DISCONNECTED, socket.userId);
-        User.findByIdAndUpdate(socket.userId, { lastSeen: Date.now() }).exec();
-      }
+    socket.on(SocketEvents.DISCONNECTING, async () => {
+      const rooms = new Set(socket.rooms);
+      io.in(socket.data.userId)
+        .fetchSockets()
+        .then((sockets) => {
+          if (sockets.length === 1) {
+            rooms.forEach((room) => {
+              socket
+                .to(room)
+                .emit(SocketEvents.USER_DISCONNECTED, socket.data.userId);
+            });
+            User.findByIdAndUpdate(socket.data.userId, {
+              lastSeen: Date.now(),
+            }).exec();
+          }
+        });
     });
 
-    socket.on(
-      SocketEvents.MESSAGE_READ,
-      ({ chatId, messageId, anotherUserId }) => {
-        Message.findByIdAndUpdate(messageId, { isRead: true }).exec();
-        socket
-          .to(anotherUserId)
-          .to(socket.userId)
-          .emit(SocketEvents.MESSAGE_READ, { messageId, chatId });
-      }
-    );
+    socket.on(SocketEvents.MESSAGE_READ, ({ chatId, messageId }) => {
+      Message.findByIdAndUpdate(messageId, { isRead: true }).exec();
+      socket.to(chatId).emit(SocketEvents.MESSAGE_READ, { messageId, chatId });
+    });
 
     socket.on(SocketEvents.USER_UPDATED, ({ _id, ...rest }) => {
-      socket.broadcast.emit(SocketEvents.USER_UPDATED, { _id, ...rest });
-      socket.to(_id).emit(SocketEvents.USER_UPDATED, { _id, ...rest });
+      socket.rooms.forEach((room) => {
+        socket.to(room).emit(SocketEvents.USER_UPDATED, { _id, ...rest });
+      });
       socket.emit(SocketEvents.USER_UPDATED, { _id, ...rest });
+    });
+
+    socket.on(SocketEvents.CHAT_CREATED, async ({ chatId, anotherUserId }) => {
+      socket.join(chatId);
+      socket.in(anotherUserId).socketsJoin(chatId);
+      socket.to(chatId).emit(SocketEvents.USER_CONNECTED, socket.data.userId);
+      socket.to(chatId).emit(SocketEvents.USER_CONNECTED, anotherUserId);
     });
   });
 };
