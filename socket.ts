@@ -88,7 +88,7 @@ export const runSocket = (server: any) => {
           notification: {
             title: messageObj.senderName,
             body: messageObj.text,
-            icon: "/assets/icon-192x192.png",
+            icon: "/assets/icons/icon-192x192.png",
             vibrate: [100, 50, 100],
             data: {
               onActionClick: {
