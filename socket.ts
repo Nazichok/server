@@ -93,7 +93,7 @@ export const runSocket = (server: any) => {
             data: {
               onActionClick: {
                 default: {
-                  operation: "navigateLastFocusedOrOpen",
+                  operation: "focusLastFocusedOrOpen",
                   url: `${process.env.CLIENT_URL}/chats/${messageObj.chatId}`,
                 }
               }
