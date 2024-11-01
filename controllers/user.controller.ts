@@ -5,10 +5,6 @@ import User from "../models/User";
 import sharp from "sharp";
 import bcrypt from "bcrypt";
 
-export const allAccess = (_req: Request, res: Response): void => {
-  res.status(200).send("Public Content.");
-};
-
 export const updateUserInfo = async (req: Request, res: Response) => {
   const updatedFields = req.body;
 
@@ -164,3 +160,24 @@ export const updateUserPassword = async (req: Request, res: Response) => {
 
   return res.status(204).send("Successfully updated user password!");
 };
+
+export const subscribeToNotifications = async (req: Request, res: Response) => {
+  const { userId } = req;
+  const { sub } = req.body;
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).send({ message: "User not found" });
+    }
+    if (!sub) {
+      return res.status(400).send({ message: "Subscription not found" });
+    }
+    await user.updateOne({
+      notificationSubscription: sub,
+    });
+    res.status(200).send({ message: "Successfully subscribed to notifications" });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).send({ message: "Failed to subscribe to notifications" });
+  }
+}

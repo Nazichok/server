@@ -11,5 +11,13 @@ declare namespace NodeJS {
     BCRYPT_SALT: string;
     CLIENT_URL: string;
     DOMAIN_NAME: string;
+    EMAIL_HOST: string;
+    EMAIL_USERNAME: string;
+    EMAIL_PASSWORD: string;
+    FROM_EMAIL: string;
+    GOOGLE_CLIENT_ID: string;
+    GOOGLE_CLIENT_SECRET: string;
+    VAPID_PRIVATE_KEY: string;
+    VAPID_PUBLIC_KEY: string;
   }
 }

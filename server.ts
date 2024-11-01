@@ -27,7 +27,7 @@ var corsOptions = {
 app.enable("trust proxy");
 app.use(
   morgan("combined", {
-    skip: function (req, res) {
+    skip: function (_, res) {
       return res.statusCode < 400;
     },
   })
@@ -51,7 +51,10 @@ app.use(
     maxAge: 7 * 24 * 60 * 60 * 1000,
     sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     secure: process.env.NODE_ENV === "production",
-    domain: process.env.NODE_ENV === "production" ? process.env.DOMAIN_NAME : undefined,
+    domain:
+      process.env.NODE_ENV === "production"
+        ? process.env.DOMAIN_NAME
+        : undefined,
   })
 );
 

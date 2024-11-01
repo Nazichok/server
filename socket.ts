@@ -1,6 +1,17 @@
 import { Server } from "socket.io";
 import Message from "./models/Message";
 import User from "./models/User";
+import webpush from "web-push";
+
+if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) {
+  throw new Error("Please define the VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY environment variables.");
+}
+
+webpush.setVapidDetails(
+  "mailto:" + process.env.EMAIL_USERNAME,
+  process.env.VAPID_PUBLIC_KEY,
+  process.env.VAPID_PRIVATE_KEY
+);
 
 export enum SocketEvents {
   USER_CONNECTED = "user connected",
@@ -69,6 +80,34 @@ export const runSocket = (server: any) => {
         .to(messageObj.chatId)
         .emit(SocketEvents.PRIVATE_MESSAGE, savedMessage);
       socket.emit(SocketEvents.PRIVATE_MESSAGE, savedMessage);
+
+      const anotherUser = await User.findById(messageObj.to);
+
+      if (anotherUser?.notificationSubscription) {
+        const notificationPayload = {
+          notification: {
+            title: messageObj.senderName,
+            body: messageObj.text,
+            icon: "/assets/icon-192x192.png",
+            vibrate: [100, 50, 100],
+            data: {
+              onActionClick: {
+                default: {
+                  operation: "navigateLastFocusedOrOpen",
+                  url: `${process.env.CLIENT_URL}/chats/${messageObj.chatId}`,
+                }
+              }
+            },
+          },
+        };
+        webpush
+          .sendNotification(
+            anotherUser.notificationSubscription,
+            JSON.stringify(notificationPayload)
+          )
+          .then(() => console.log("Successfully sent notification"))
+          .catch((err) => console.log(err));
+      }
     });
 
     // notify users upon disconnection

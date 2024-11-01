@@ -18,6 +18,32 @@ const UserSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  notificationSubscription: {
+    type: {
+      endpoint: {
+        type: String,
+        required: true,
+      },
+      expirationTime: {
+        type: Number,
+        required: true,
+      },
+      keys: {
+        type: {
+          p256dh: {
+            type: String,
+            required: true,
+          },
+          auth: {
+            type: String,
+            required: true,
+          },
+        },
+        required: true,
+      },
+    },
+    default: null,
+  },
 });
 
 export default mongoose.model("User", UserSchema);
