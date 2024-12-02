@@ -49,13 +49,22 @@ export const signup = async (req: Request, res: Response) => {
 
 export const signin = async (req: Request, res: Response) => {
   try {
+    const username = req.body.username;
     const user = await User.findOne({
-      username: req.body.username,
+      $or: [
+        { username },
+        { email: username},
+      ],
     });
 
     if (!user) {
       return res.status(404).send({ message: "User Not found." });
     }
+
+    if (!user.password && user.isGoogleUser) {
+      return res.status(401).send({ message: "Please sign in with Google!" });
+    }
+
 
     if (!user.password) {
       return res.status(401).send({ message: "Invalid Password!" });
