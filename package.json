@@ -2,11 +2,11 @@
   "name": "server",
   "version": "1.0.0",
   "description": "Backend for chat app",
-  "main": "index.js",
+  "main": "dist/server.js",
   "scripts": {
     "test": "test",
-    "serve": "nodemon server.ts",
-    "prod": "NODE_ENV=production ts-node server.ts"
+    "serve": "tsc && node dist/server.js",
+    "prod": "NODE_ENV=production tsc && node dist/server.js"
   },
   "author": "Nazar Dizhak",
   "license": "ISC",
