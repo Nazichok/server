@@ -1,4 +1,4 @@
-FROM node:lts-alpine AS build
+FROM node:lts-alpine AS builder
 
 WORKDIR /usr/src/app
 
@@ -6,16 +6,13 @@ COPY package*.json ./
 
 RUN npm ci
 COPY . .
-RUN npm run build
 
-FROM node:lts-alpine
-WORKDIR /app
-COPY package*.json ./
-COPY .env .env
-
-RUN npm ci --omit=dev
-
-COPY --from=build /usr/src/app/dist /app
+FROM builder AS dev
 
 EXPOSE 8080
-CMD [ "node", "server.js" ]
+
+CMD ["npm", "run", "serve"]
+
+FROM builder AS prod
+
+CMD ["npm", "run", "prod"]

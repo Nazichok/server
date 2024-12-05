@@ -6,7 +6,6 @@
   "scripts": {
     "test": "cross-env TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\" }' mocha --exit --timeout 10000 -r ts-node/register 'test/**/*.ts'",
     "serve": "nodemon server.ts",
-    "build": "npx tsc",
     "prod": "NODE_ENV=production tsc && node dist/server.js"
   },
   "author": "Nazar Dizhak",
