@@ -1,4 +1,4 @@
-import mongoose, { Types } from "mongoose";
+import mongoose from "mongoose";
 
 const UserSchema = new mongoose.Schema({
   password: String,
@@ -11,7 +11,6 @@ const UserSchema = new mongoose.Schema({
     required: true,
   },
   img: String,
-  chats: Array<Types.ObjectId>,
   lastSeen: Number,
   verified: Boolean,
   isGoogleUser: {

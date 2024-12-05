@@ -72,7 +72,18 @@ async function run() {
   if (!process.env.DB_URL) {
     throw new Error("Please define the DB_URL environment variable.");
   }
-  await mongoose.connect(process.env.DB_URL);
+
+  let dbUrl = process.env.DB_URL;
+  if (process.env.NODE_ENV === "testing") {
+
+    if (!process.env.TEST_DB_URL) {
+      throw new Error("Please define the TEST_DB_URL environment variable.");
+    }
+
+    dbUrl = process.env.TEST_DB_URL;
+  }
+
+  await mongoose.connect(dbUrl);
   const server = app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}.`);
   });
@@ -85,3 +96,5 @@ try {
   console.error("Connection error", error);
   process.exit();
 }
+
+export default app;

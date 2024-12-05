@@ -4,7 +4,7 @@
   "description": "Backend for chat app",
   "main": "dist/server.js",
   "scripts": {
-    "test": "test",
+    "test": "cross-env TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\" }' mocha --exit --timeout 10000 -r ts-node/register 'test/**/*.ts'",
     "serve": "nodemon server.ts",
     "build": "npx tsc",
     "prod": "NODE_ENV=production tsc && node dist/server.js"
@@ -36,21 +36,28 @@
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
     "@types/body-parser": "^1.19.5",
+    "@types/chai": "^5.0.1",
     "@types/cookie-parser": "^1.4.7",
     "@types/cookie-session": "^2.0.49",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/jsonwebtoken": "^9.0.6",
+    "@types/mocha": "^10.0.10",
     "@types/mongoose": "^5.11.97",
     "@types/morgan": "^1.9.9",
     "@types/multer": "^1.4.11",
     "@types/node": "^20.11.26",
     "@types/nodemailer": "^6.4.15",
     "@types/socket.io": "^3.0.2",
+    "@types/supertest": "^6.0.2",
     "@types/uuid": "^10.0.0",
     "@types/web-push": "^3.6.4",
+    "chai": "^5.1.2",
+    "cross-env": "^7.0.3",
     "globals": "^15.4.0",
+    "mocha": "^11.0.1",
     "nodemon": "^3.1.0",
+    "supertest": "^7.0.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.2"
   }
