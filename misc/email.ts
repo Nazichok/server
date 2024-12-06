@@ -37,6 +37,7 @@ export const sendEmail = async (
     // Send email
     await transporter.sendMail(options);
   } catch (error) {
-    return error;
+    console.error(error);
+    throw error;
   }
 };
