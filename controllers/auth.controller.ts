@@ -32,12 +32,14 @@ export const signup = async (req: Request, res: Response) => {
     }).save();
 
     const link = `${process.env.CLIENT_URL}/confirm-email?id=${user._id}&token=${resetToken}`;
-    await sendEmail(
-      user.email,
-      "Registration Successful",
-      { name: user.username, link },
-      "../../template/confirmEmail.handlebars"
-    );
+    if (process.env.NODE_ENV !== "testing") {
+      await sendEmail(
+        user.email,
+        "Registration Successful",
+        { name: user.username, link },
+        "../template/confirmEmail.handlebars"
+      );
+    }
 
     return res
       .status(200)
@@ -214,7 +216,7 @@ export const resetPasswordRequest = async (req: Request, res: Response) => {
       user.email,
       "Password Reset Request",
       { name: user.username, link: link },
-      "../../template/requestResetPassword.handlebars"
+      "../template/requestResetPassword.handlebars"
     );
 
     return res
@@ -260,7 +262,7 @@ export const resetPassword = async (req: Request, res: Response) => {
       {
         name: user.username,
       },
-      "../../template/resetPassword.handlebars"
+      "../template/resetPassword.handlebars"
     );
 
     return res.status(200).send({ message: "Password reset successfully" });
