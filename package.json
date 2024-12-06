@@ -4,7 +4,7 @@
   "description": "Backend for chat app",
   "main": "dist/server.js",
   "scripts": {
-    "test": "cross-env TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\" }' mocha --exit --timeout 20000 -r ts-node/register 'test/**/*.ts'",
+    "test": "cross-env NODE_ENV=testing TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\" }' mocha --exit --timeout 20000 -r ts-node/register 'test/**/*.ts'",
     "serve": "nodemon server.ts",
     "prod": "NODE_ENV=production tsc && node dist/server.js"
   },
