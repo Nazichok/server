@@ -32,7 +32,7 @@ export const signup = async (req: Request, res: Response) => {
     }).save();
 
     const link = `${process.env.CLIENT_URL}/confirm-email?id=${user._id}&token=${resetToken}`;
-    sendEmail(
+    await sendEmail(
       user.email,
       "Registration Successful",
       { name: user.username, link },
